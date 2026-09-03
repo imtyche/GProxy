@@ -1,5 +1,6 @@
 const statusDot = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
+const proxyModeText = document.getElementById('proxy-mode-text');
 const bypassArea = document.getElementById('bypass-list');
 const proxyScheme = document.getElementById('proxy-scheme');
 const proxyHost = document.getElementById('proxy-host');
@@ -10,6 +11,20 @@ const STATUS = {
     CONNECTED: (ms) => ({ text: `已连接 (${ms}ms)`, color: '#03dac6' }),
     DISCONNECTED: { text: '连接超时 (未连接)', color: '#cf6679' }
 };
+
+// 检测并更新当前 Chrome 的代理开启状态[cite: 2]
+function updateProxyModeStatus() {
+    chrome.proxy.settings.get({ incognito: false }, (config) => {
+        const mode = config.value.mode;
+        if (mode === 'fixed_servers' || mode === 'pac_script') {
+            proxyModeText.textContent = '[代理已开启]';
+            proxyModeText.style.color = '#03dac6';
+        } else {
+            proxyModeText.textContent = '[代理已关闭]';
+            proxyModeText.style.color = '#cf6679';
+        }
+    });
+}
 
 function setUIStatus(type, ms = 0) {
     const state = typeof type === 'function' ? type(ms) : type;
@@ -45,6 +60,9 @@ async function pingTest() {
 }
 
 function init() {
+    // 读取当前代理控制状态
+    updateProxyModeStatus();
+
     chrome.storage.local.get(['customBypassList', 'proxyScheme', 'proxyHost', 'proxyPort'], (result) => {
         if (result.customBypassList) {
             bypassArea.value = result.customBypassList.join('\n');
@@ -53,6 +71,7 @@ function init() {
         proxyHost.value = result.proxyHost || '127.0.0.1';
         proxyPort.value = result.proxyPort || 2334;
     });
+
     pingTest().then(() => {
         setInterval(pingTest, 10000);
     });
@@ -71,13 +90,16 @@ document.getElementById('btn-save').onclick = () => {
         alert('请填写正确的主机地址和端口号！');
         return;
     }
+
     chrome.storage.local.set({
         customBypassList: newList,
         proxyScheme: scheme,
         proxyHost: host,
         proxyPort: port
     }, () => {
-         pingTest().then(() => {alert('保存成功!')});
+        // 保存并触发更新后再次同步状态
+        updateProxyModeStatus();
+        pingTest().then(() => { alert('保存成功!'); });
     });
 };
 
