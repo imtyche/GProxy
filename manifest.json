@@ -41,14 +41,5 @@
     "tabs",
     "webRequest",
     "webRequestAuthProvider"
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "_locales/en/messages.json",
-        "_locales/zh/messages.json"
-      ],
-      "matches": ["<all_urls>"]
-    }
   ]
 }
