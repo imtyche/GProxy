@@ -70,23 +70,7 @@ const I18N = (function() {
 
     async function loadLang(langCode) {
         const code = (langCode === 'en') ? 'en' : 'zh';
-        try {
-            const resp = await fetch(chrome.runtime.getURL('_locales/' + code + '/messages.json'));
-            if (resp.ok) {
-                const data = await resp.json();
-                const flat = {};
-                for (const [k, v] of Object.entries(data)) {
-                    flat[k] = (v && typeof v === 'object' && 'message' in v) ? v.message : v;
-                }
-                Object.keys(messages).forEach(k => delete messages[k]);
-                Object.assign(messages, FALLBACK[code] || {}, flat);
-                lang = code;
-                document.documentElement.lang = code;
-                return;
-            }
-        } catch (e) {
-            console.warn('[GProxy] i18n fetch failed, using fallback:', e);
-        }
+        // Use built-in fallback directly (no fetch from _locales since those files have been removed)
         Object.keys(messages).forEach(k => delete messages[k]);
         Object.assign(messages, FALLBACK[code] || FALLBACK.zh);
         lang = code;
