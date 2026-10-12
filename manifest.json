@@ -3,7 +3,6 @@
   "name": "GProxy",
   "version": "6.0.1",
   "description": "A lightweight proxy plug-in.",
-  "default_locale": "en",
   "icons": {
     "16": "image/icon16.png",
     "48": "image/icon48.png",
