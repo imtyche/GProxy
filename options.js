@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function updateLangButtons() {
         const currentLang = I18N.getLang();
-        const label = currentLang === 'zh' ? 'EN' : '中';
+        const label = currentLang === 'zh' ? 'EN' : 'CN';
         [langSwitcherDesktop, langSwitcherMobile].forEach(btn => {
             if (btn) btn.textContent = label;
         });
