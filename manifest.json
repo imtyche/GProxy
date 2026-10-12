@@ -1,19 +1,32 @@
 {
   "manifest_version": 3,
   "name": "GProxy",
-  "version": "6.0",
+  "version": "6.0.1",
   "description": "A lightweight proxy plug-in.",
-  "permissions": [
-    "commands",
-    "proxy",
-    "storage",
-    "declarativeNetRequest",
-    "contextMenus",
-    "history",
-    "cookies",
-    "tabs",
-    "webRequest",
-    "webRequestAuthProvider"
+  "default_locale": "en",
+  "icons": {
+    "16": "image/icon16.png",
+    "48": "image/icon48.png",
+    "128": "image/icon128.png"
+  },
+  "action": {
+    "default_title": "GProxy Options",
+    "default_icon": {
+      "16": "image/icon16.png",
+      "48": "image/icon48.png",
+      "128": "image/icon128.png"
+    }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
   ],
   "background": {
     "service_worker": "background.js"
@@ -21,12 +34,21 @@
   "host_permissions": [
     "<all_urls>"
   ],
-  "icons": {
-    "16": "image/icon16.png",
-    "48": "image/icon48.png",
-    "128": "image/icon128.png"
-  },
-  "action": {
-    "default_title": "选项"
-  }
+  "permissions": [
+    "proxy",
+    "storage",
+    "contextMenus",
+    "tabs",
+    "webRequest",
+    "webRequestAuthProvider"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "_locales/en/messages.json",
+        "_locales/zh/messages.json"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
