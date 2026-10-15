@@ -1,118 +1,76 @@
-// ==================== i18n Module ====================
-const I18N = (function() {
-    let lang = 'zh';
-    const messages = {};
-
-    const FALLBACK = {
-        zh: {
-            proj_name: 'GProxy',
-            title_options: 'GProxy 选项',
-            section_proxy: '代理服务器设置',
-            label_scheme: '协议',
-            label_host: '主机地址',
-            label_port: '端口',
-            section_status: '连接状态',
-            status_proxy_mode: '代理模式',
-            status_checking: '检测中...',
-            status_connected: '代理运行中',
-            status_disconnected: '代理已关闭',
-            status_detail_on: '延迟 {0} ms',
-            status_detail_off: '系统直连，未使用代理',
-            status_timeout: '连接超时',
-            status_testing: '测速中...',
-            section_bypass: '绕行名单',
-            hint_bypass: '以下域名和 IP 将直接连接，不经过代理服务器。',
-            btn_save: '保存并更新',
-            btn_reset: '恢复默认设置',
-            error_invalid_host_port: '请填写正确的主机地址和端口号！',
-            error_invalid_scheme: '无效的代理协议！',
-            error_port_range: '端口号必须在 1-65535 之间！',
-            error_save: '保存失败: {0}',
-            success_saved: '保存成功！',
-            proxy_on: '代理已开启',
-            proxy_off: '代理已关闭',
-            confirm_reset: '确定要恢复默认设置吗？',
-            lang_zh: '中文',
-            lang_en: 'English'
-        },
-        en: {
-            proj_name: 'GProxy',
-            title_options: 'GProxy Options',
-            section_proxy: 'Proxy Server Settings',
-            label_scheme: 'Scheme',
-            label_host: 'Host',
-            label_port: 'Port',
-            section_status: 'Connection Status',
-            status_proxy_mode: 'Proxy Mode',
-            status_checking: 'Checking...',
-            status_connected: 'Proxy Running',
-            status_disconnected: 'Proxy Disabled',
-            status_detail_on: 'Latency {0} ms',
-            status_detail_off: 'Direct connection, no proxy',
-            status_timeout: 'Connection Timeout',
-            status_testing: 'Testing...',
-            section_bypass: 'Bypass List',
-            hint_bypass: 'The following domains and IPs will connect directly, bypassing the proxy server.',
-            btn_save: 'Save and Update',
-            btn_reset: 'Reset to Defaults',
-            error_invalid_host_port: 'Please enter a valid host and port!',
-            error_invalid_scheme: 'Invalid proxy scheme!',
-            error_port_range: 'Port must be between 1-65535!',
-            error_save: 'Save failed: {0}',
-            success_saved: 'Saved successfully!',
-            proxy_on: 'Proxy Enabled',
-            proxy_off: 'Proxy Disabled',
-            confirm_reset: 'Reset to default settings?',
-            lang_zh: '中文',
-            lang_en: 'English'
-        }
-    };
-
-    async function loadLang(langCode) {
-        const code = (langCode === 'en') ? 'en' : 'zh';
-        // Use built-in fallback directly (no fetch from _locales since those files have been removed)
-        Object.keys(messages).forEach(k => delete messages[k]);
-        Object.assign(messages, FALLBACK[code] || FALLBACK.zh);
-        lang = code;
-        document.documentElement.lang = code;
+// ==================== i18n ====================
+const I18N = createI18N({
+    zh: {
+        proj_name: 'GProxy',
+        title_options: 'GProxy 选项',
+        section_proxy: '代理服务器设置',
+        label_scheme: '协议',
+        label_host: '主机地址',
+        label_port: '端口',
+        section_status: '连接状态',
+        status_proxy_mode: '代理模式',
+        status_checking: '检测中...',
+        status_connected: '代理运行中',
+        status_disconnected: '代理已关闭',
+        status_detail_on: '延迟 {0} ms',
+        status_detail_off: '系统直连，未使用代理',
+        status_timeout: '连接超时',
+        status_testing: '测速中...',
+        section_bypass: '绕行名单',
+        hint_bypass: '以下域名和 IP 将直接连接，不经过代理服务器。',
+        section_general: '常规',
+        label_show_ball: '在页面上显示悬浮开关',
+        btn_save: '保存并更新',
+        btn_reset: '恢复默认设置',
+        error_invalid_host_port: '请填写正确的主机地址和端口号！',
+        error_invalid_scheme: '无效的代理协议！',
+        error_port_range: '端口号必须在 1-65535 之间！',
+        error_save: '保存失败: {0}',
+        success_saved: '保存成功！',
+        proxy_on: '代理已开启',
+        proxy_off: '代理已关闭',
+        confirm_reset: '确定要恢复默认设置吗？',
+        lang_zh: '中文',
+        lang_en: 'English'
+    },
+    en: {
+        proj_name: 'GProxy',
+        title_options: 'GProxy Options',
+        section_proxy: 'Proxy Server Settings',
+        label_scheme: 'Scheme',
+        label_host: 'Host',
+        label_port: 'Port',
+        section_status: 'Connection Status',
+        status_proxy_mode: 'Proxy Mode',
+        status_checking: 'Checking...',
+        status_connected: 'Proxy Running',
+        status_disconnected: 'Proxy Disabled',
+        status_detail_on: 'Latency {0} ms',
+        status_detail_off: 'Direct connection, no proxy',
+        status_timeout: 'Connection Timeout',
+        status_testing: 'Testing...',
+        section_bypass: 'Bypass List',
+        hint_bypass: 'The following domains and IPs will connect directly, bypassing the proxy server.',
+        section_general: 'General',
+        label_show_ball: 'Show floating toggle on pages',
+        btn_save: 'Save and Update',
+        btn_reset: 'Reset to Defaults',
+        error_invalid_host_port: 'Please enter a valid host and port!',
+        error_invalid_scheme: 'Invalid proxy scheme!',
+        error_port_range: 'Port must be between 1-65535!',
+        error_save: 'Save failed: {0}',
+        success_saved: 'Saved successfully!',
+        proxy_on: 'Proxy Enabled',
+        proxy_off: 'Proxy Disabled',
+        confirm_reset: 'Reset to default settings?',
+        lang_zh: '中文',
+        lang_en: 'English'
     }
+});
 
-    (async function init() {
-        try {
-            const savedLang = await new Promise((resolve) => {
-                chrome.storage.local.get(['uiLanguage'], (r) => resolve(r.uiLanguage || 'zh'));
-            });
-            await loadLang(savedLang);
-        } catch (e) {
-            await loadLang('zh');
-        }
-    })();
-
-    function t(key, ...args) {
-        let msg = messages[key] || (FALLBACK[lang] && FALLBACK[lang][key]) || key;
-        if (args.length) {
-            args.forEach((arg, i) => {
-                msg = String(msg).replace(new RegExp('\\{' + i + '\\}', 'g'), String(arg));
-            });
-        }
-        return msg;
-    }
-
-    async function setLang(langCode) {
-        await loadLang(langCode);
-        await new Promise((resolve) => {
-            chrome.storage.local.set({ uiLanguage: lang }, resolve);
-        });
-        document.dispatchEvent(new CustomEvent('i18n:languagechange', { detail: { lang } }));
-    }
-
-    return { t, setLang, getLang: () => lang };
-})();
-
-// ==================== Initialize i18n and UI ====================
+// ==================== Initialize UI ====================
 document.addEventListener('DOMContentLoaded', async () => {
-    // Wait a tick for I18N init
-    await new Promise(r => setTimeout(r, 50));
+    await I18N.init();
 
     const langSwitcherDesktop = document.getElementById('lang-switch-desktop');
     const langSwitcherMobile = document.getElementById('lang-switcher');
@@ -131,6 +89,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateLangButtons();
             applyI18n();
             updateProxyModeStatus();
+            // Sync other tabs (floating toggle labels + context menu titles)
+            chrome.runtime.sendMessage({ action: 'setLanguage', lang: nextLang }).catch(() => {});
         });
     }
 
@@ -171,6 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const proxyPort = document.getElementById('proxy-port');
     const btnSave = document.getElementById('btn-save');
     const btnReset = document.getElementById('btn-reset');
+    const ballToggle = document.getElementById('show-floating-toggle');
 
     function showToast(msg, isError = false) {
         const toast = document.getElementById('toast');
@@ -287,23 +248,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Initial + periodic latency refresh
+    // Initial + periodic latency refresh (slower interval, paused when tab is hidden)
     updateProxyModeStatus();
-    setInterval(updateProxyModeStatus, 5000);
+    setInterval(() => {
+        if (document.hidden) return;
+        updateProxyModeStatus();
+    }, 15000);
 
     // Refresh when storage changes
     chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'local') updateProxyModeStatus();
     });
 
-    chrome.storage.local.get(['customBypassList', 'proxyScheme', 'proxyHost', 'proxyPort'], (result) => {
-        if (bypassArea && result.customBypassList) {
-            bypassArea.value = result.customBypassList.join('\n');
+    chrome.storage.local.get(
+        ['customBypassList', 'proxyScheme', 'proxyHost', 'proxyPort', 'showFloatingToggle'],
+        (result) => {
+            if (bypassArea && result.customBypassList) {
+                bypassArea.value = result.customBypassList.join('\n');
+            }
+            if (proxyScheme) proxyScheme.value = result.proxyScheme || 'http';
+            if (proxyHost) proxyHost.value = result.proxyHost || '127.0.0.1';
+            if (proxyPort) proxyPort.value = result.proxyPort || 2334;
+            if (ballToggle) ballToggle.checked = result.showFloatingToggle !== false;
         }
-        if (proxyScheme) proxyScheme.value = result.proxyScheme || 'http';
-        if (proxyHost) proxyHost.value = result.proxyHost || '127.0.0.1';
-        if (proxyPort) proxyPort.value = result.proxyPort || 2334;
-    });
+    );
+
+    if (ballToggle) {
+        ballToggle.addEventListener('change', () => {
+            chrome.storage.local.set({ showFloatingToggle: ballToggle.checked });
+        });
+    }
 
     if (btnSave) {
         btnSave.onclick = () => {
@@ -350,16 +324,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (btnReset) {
         btnReset.onclick = () => {
-            if (confirm(I18N.t('confirm_reset'))) {
+            if (!confirm(I18N.t('confirm_reset'))) return;
+            // Defaults come from the background (single source of truth)
+            chrome.runtime.sendMessage({ action: 'getDefaults' }, (defaults) => {
+                if (chrome.runtime.lastError || !defaults) return;
                 chrome.storage.local.set({
-                    customBypassList: ['127.0.0.1', '::1', 'localhost', '*.baidu.com'],
-                    proxyScheme: 'http',
-                    proxyHost: '127.0.0.1',
-                    proxyPort: 2334
+                    customBypassList: defaults.bypassList,
+                    proxyScheme: defaults.scheme,
+                    proxyHost: defaults.host,
+                    proxyPort: defaults.port
                 }, () => {
                     window.location.reload();
                 });
-            }
+            });
         };
     }
 });

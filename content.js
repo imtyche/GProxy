@@ -1,92 +1,31 @@
-// ==================== i18n Module ====================
-const I18N = (function() {
-    let lang = 'zh';
-    const messages = {};
-
-    // Built-in fallbacks so UI works even if fetch fails
-    const FALLBACK = {
-        zh: {
-            proxy_on: '代理已开启 - 点击关闭',
-            proxy_off: '代理已关闭 - 点击开启',
-            whitelist_prompt: '是否将当前域名 "{0}" 添加到代理白名单（绕过列表）？\n\n这样此域名的访问将不经过代理服务器。',
-            whitelist_added: '已添加到白名单: {0}',
-            whitelist_add_error: '添加到白名单失败: {0}',
-            whitelist_added_title: '添加到白名单',
-            btn_add_to_whitelist: '添加',
-            btn_cancel: '取消',
-            lang_zh: '中文',
-            lang_en: 'English'
-        },
-        en: {
-            proxy_on: 'Proxy Enabled - Click to Disable',
-            proxy_off: 'Proxy Disabled - Click to Enable',
-            whitelist_prompt: 'Do you want to add the current domain "{0}" to the proxy whitelist (bypass list)?\n\nThis will allow this domain to bypass the proxy server.',
-            whitelist_added: 'Successfully added "{0}" to the whitelist.',
-            whitelist_add_error: 'Failed to add to whitelist: {0}',
-            whitelist_added_title: 'Add to whitelist',
-            btn_add_to_whitelist: 'Add',
-            btn_cancel: 'Cancel',
-            lang_zh: '中文',
-            lang_en: 'English'
-        }
-    };
-
-    async function loadLang(langCode) {
-        const code = (langCode === 'en') ? 'en' : 'zh';
-        try {
-            // Chrome requires _locales/<lang>/messages.json in { key: { message: "..." } } form
-            const resp = await fetch(chrome.runtime.getURL('_locales/' + code + '/messages.json'));
-            if (resp.ok) {
-                const data = await resp.json();
-                const flat = {};
-                for (const [k, v] of Object.entries(data)) {
-                    flat[k] = (v && typeof v === 'object' && 'message' in v) ? v.message : v;
-                }
-                Object.keys(messages).forEach(k => delete messages[k]);
-                Object.assign(messages, FALLBACK[code] || {}, flat);
-                lang = code;
-                return;
-            }
-        } catch (e) {
-            console.warn('[GProxy] i18n fetch failed, using fallback:', e);
-        }
-        Object.keys(messages).forEach(k => delete messages[k]);
-        Object.assign(messages, FALLBACK[code] || FALLBACK.zh);
-        lang = code;
+// ==================== i18n ====================
+const I18N = createI18N({
+    zh: {
+        proxy_on: '代理已开启 - 点击关闭',
+        proxy_off: '代理已关闭 - 点击开启',
+        whitelist_prompt: '是否将当前域名 "{0}" 添加到代理白名单（绕过列表）？\n\n这样此域名的访问将不经过代理服务器。',
+        whitelist_added: '已添加到白名单: {0}',
+        whitelist_add_error: '添加到白名单失败: {0}',
+        whitelist_added_title: '添加到白名单',
+        btn_add_to_whitelist: '添加',
+        btn_cancel: '取消',
+        lang_zh: '中文',
+        lang_en: 'English'
+    },
+    en: {
+        proxy_on: 'Proxy Enabled - Click to Disable',
+        proxy_off: 'Proxy Disabled - Click to Enable',
+        whitelist_prompt: 'Do you want to add the current domain "{0}" to the proxy whitelist (bypass list)?\n\nThis will allow this domain to bypass the proxy server.',
+        whitelist_added: 'Successfully added "{0}" to the whitelist.',
+        whitelist_add_error: 'Failed to add to whitelist: {0}',
+        whitelist_added_title: 'Add to whitelist',
+        btn_add_to_whitelist: 'Add',
+        btn_cancel: 'Cancel',
+        lang_zh: '中文',
+        lang_en: 'English'
     }
-
-    (async function init() {
-        try {
-            const savedLang = await new Promise((resolve) => {
-                chrome.storage.local.get(['uiLanguage'], (r) => resolve(r.uiLanguage || 'zh'));
-            });
-            await loadLang(savedLang);
-        } catch (e) {
-            await loadLang('zh');
-        }
-    })();
-
-    // Support simple {0} {1} placeholders
-    function t(key, ...args) {
-        let msg = messages[key] || (FALLBACK[lang] && FALLBACK[lang][key]) || key;
-        if (args.length) {
-            args.forEach((arg, i) => {
-                msg = String(msg).replace(new RegExp('\\{' + i + '\\}', 'g'), String(arg));
-            });
-        }
-        return msg;
-    }
-
-    async function setLang(langCode) {
-        await loadLang(langCode);
-        await new Promise((resolve) => {
-            chrome.storage.local.set({ uiLanguage: lang }, resolve);
-        });
-        document.dispatchEvent(new CustomEvent('i18n:languagechange', { detail: { lang } }));
-    }
-
-    return { t, setLang, getLang: () => lang };
-})();
+});
+I18N.init();
 
 // ==================== Scoped Cyberpunk HUD Styles ====================
 // Only style our own elements — never touch page body / global selectors
@@ -132,6 +71,11 @@ style.textContent = `
     .gproxy-cyber-toggle.gproxy-hidden {
         opacity: 0.15 !important;
         pointer-events: auto !important;
+    }
+
+    /* Fully disabled via the "show floating toggle" setting */
+    .gproxy-cyber-toggle.gproxy-disabled {
+        display: none !important;
     }
 
     .gproxy-cyber-toggle:hover {
@@ -440,21 +384,6 @@ function createCyberToggle() {
         }
     });
 
-    // Hover 3s → whitelist prompt
-    let hoverTimer = null;
-    toggle.addEventListener('mouseenter', () => {
-        updateCyberLabel();
-        if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
-        hoverTimer = setTimeout(() => {
-            hoverTimer = null;
-            showWhitelistPrompt();
-        }, 1500);
-    });
-    toggle.addEventListener('mouseleave', () => {
-        if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
-        updateCyberLabel();
-    });
-
     // ---------- Draggable + sidebar slide-in/out ----------
     // 默认贴边只露一点，鼠标靠近浏览器边缘自动弹出
     let isDragging = false;
@@ -463,6 +392,7 @@ function createCyberToggle() {
     let startX = 0;
     let startY = 0;
     let hideTimer = null;
+    let hoverTimer = null;
     let revealed = false;
     let hoverLocked = false;
     let side = 'right';   // 'left' | 'right' —— 当前贴哪边
@@ -631,23 +561,38 @@ function createCyberToggle() {
             toggle.style.removeProperty('transition');
             hoverLocked = false;
             // 拖完根据位置决定贴哪边，稍后自动隐藏
-            const { w } = getSize();
+            const { w, h } = getSize();
             const vw = window.innerWidth;
+            const vh = window.innerHeight;
             const rect = toggle.getBoundingClientRect();
             const centerX = rect.left + w / 2;
             side = centerX > vw / 2 ? 'right' : 'left';
             revealed = true;
+            // Remember the ball's position so it survives page reloads
+            chrome.storage.local.set({
+                toggleSide: side,
+                toggleTopRatio: vh > 0 ? (rect.top + h / 2) / vh : 0.5
+            });
             scheduleHide();
         }
     });
 
+    // Hover 1.5s → whitelist prompt; also lock reveal while pointer is over the ball
     toggle.addEventListener('mouseenter', () => {
         hoverLocked = true;
+        updateCyberLabel();
         if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
         if (!revealed) applyRevealed(true);
+        if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
+        hoverTimer = setTimeout(() => {
+            hoverTimer = null;
+            showWhitelistPrompt();
+        }, 1500);
     });
     toggle.addEventListener('mouseleave', () => {
+        if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
         hoverLocked = false;
+        updateCyberLabel();
         scheduleHide();
     });
 
@@ -656,23 +601,27 @@ function createCyberToggle() {
         else applyHidden(false);
     });
 
-    // ---------- 初始化：默认贴右侧边只露出一点 ----------
+    // ---------- 初始化：恢复上次的贴边位置，默认贴右侧边只露出一点 ----------
     function initPosition() {
-        const { h } = getSize();
         const vw = window.innerWidth;
         const vh = window.innerHeight;
+        const { w, h } = getSize();
 
-        side = 'right';
-        revealed = false;
+        chrome.storage.local.get(['toggleSide', 'toggleTopRatio'], (r) => {
+            side = r.toggleSide === 'left' ? 'left' : 'right';
+            const ratio = typeof r.toggleTopRatio === 'number' ? r.toggleTopRatio : 0.5;
+            revealed = false;
 
-        // 直接放到右侧贴边隐藏位置（只露 PEEK），无动画
-        setPos(vw - PEEK, Math.max(0, Math.min(vh / 2 - h / 2, vh - h)), false);
-        toggle.classList.add('gproxy-hidden');
+            const top = Math.max(0, Math.min(ratio * vh - h / 2, vh - h));
+            const left = side === 'right' ? vw - PEEK : PEEK - w;
+            setPos(left, top, false);
+            toggle.classList.add('gproxy-hidden');
 
-        // 下一帧恢复过渡，保证后续滑入/滑出有动画
-        requestAnimationFrame(() => {
+            // 下一帧恢复过渡，保证后续滑入/滑出有动画
             requestAnimationFrame(() => {
-                toggle.style.removeProperty('transition');
+                requestAnimationFrame(() => {
+                    toggle.style.removeProperty('transition');
+                });
             });
         });
     }
@@ -744,6 +693,16 @@ function updateCyberLabel() {
     if (label) label.textContent = text;
 }
 
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[c]));
+}
+
 function showWhitelistPrompt() {
     if (document.querySelector('.gproxy-whitelist-prompt')) return;
 
@@ -752,11 +711,12 @@ function showWhitelistPrompt() {
 
     const prompt = document.createElement('div');
     prompt.className = 'gproxy-whitelist-prompt';
-    // Highlight the domain name inside the prompt text
+    // Highlight the domain name inside the prompt text (escape before injecting HTML)
+    const safeHost = escapeHtml(hostname);
     const rawPrompt = I18N.t('whitelist_prompt', hostname);
     const promptText = rawPrompt.replace(
         new RegExp('(["\']?)' + hostname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\1', 'g'),
-        '<span class="gproxy-domain">' + hostname + '</span>'
+        '<span class="gproxy-domain">' + safeHost + '</span>'
     );
 
     prompt.innerHTML = `
@@ -812,9 +772,18 @@ function addToWhitelist(hostname) {
 }
 
 // ==================== Initialize ====================
+function applyToggleVisibility(enabled) {
+    const toggle = document.getElementById('gproxy-toggle');
+    if (!toggle) return;
+    toggle.classList.toggle('gproxy-disabled', enabled === false);
+}
+
 function initToggle() {
     try {
         createCyberToggle();
+        chrome.storage.local.get(['showFloatingToggle'], (r) => {
+            applyToggleVisibility(r.showFloatingToggle !== false);
+        });
     } catch (e) {
         console.error('[GProxy] createCyberToggle failed:', e);
     }
@@ -825,6 +794,12 @@ if (document.readyState === 'loading') {
 } else {
     initToggle();
 }
+
+// React to the "show floating toggle" setting without needing a page reload
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || !changes.showFloatingToggle) return;
+    applyToggleVisibility(changes.showFloatingToggle.newValue !== false);
+});
 
 // Messages from background / options
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
