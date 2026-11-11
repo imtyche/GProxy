@@ -33,7 +33,7 @@
   "commands": {
     "toggle-proxy": {
       "suggested_key": {
-        "default": "Alt+Shift+P"
+        "default": "Ctrl+Shift+Y"
       },
       "description": "Toggle GProxy proxy"
     }

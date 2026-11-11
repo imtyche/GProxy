@@ -20,6 +20,9 @@ const I18N = createI18N({
         hint_bypass: '以下域名和 IP 将直接连接，不经过代理服务器。',
         section_general: '常规',
         label_show_ball: '在页面上显示悬浮开关',
+        label_endpoint: '代理地址',
+        btn_test: '测试连接',
+        bypass_count: '{0} 条规则',
         btn_save: '保存并更新',
         btn_reset: '恢复默认设置',
         error_invalid_host_port: '请填写正确的主机地址和端口号！',
@@ -53,6 +56,9 @@ const I18N = createI18N({
         hint_bypass: 'The following domains and IPs will connect directly, bypassing the proxy server.',
         section_general: 'General',
         label_show_ball: 'Show floating toggle on pages',
+        label_endpoint: 'Proxy Endpoint',
+        btn_test: 'Test',
+        bypass_count: '{0} rules',
         btn_save: 'Save and Update',
         btn_reset: 'Reset to Defaults',
         error_invalid_host_port: 'Please enter a valid host and port!',
@@ -132,6 +138,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnSave = document.getElementById('btn-save');
     const btnReset = document.getElementById('btn-reset');
     const ballToggle = document.getElementById('show-floating-toggle');
+    const btnTest = document.getElementById('btn-test');
+    const endpointText = document.getElementById('proxy-endpoint-text');
+    const bypassCount = document.getElementById('bypass-count');
 
     function showToast(msg, isError = false) {
         const toast = document.getElementById('toast');
@@ -260,6 +269,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (area === 'local') updateProxyModeStatus();
     });
 
+    function updateBypassCount() {
+        if (!bypassArea || !bypassCount) return;
+        const n = bypassArea.value
+            .split('\n')
+            .map(s => s.trim())
+            .filter(s => s.length > 0 && !s.startsWith('#')).length;
+        bypassCount.textContent = I18N.t('bypass_count', n);
+    }
+
+    function renderEndpoint(scheme, host, port) {
+        if (!endpointText) return;
+        endpointText.textContent = `${scheme || 'http'}://${host || '127.0.0.1'}:${port != null ? port : 2334}`;
+    }
+
     chrome.storage.local.get(
         ['customBypassList', 'proxyScheme', 'proxyHost', 'proxyPort', 'showFloatingToggle'],
         (result) => {
@@ -270,6 +293,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (proxyHost) proxyHost.value = result.proxyHost || '127.0.0.1';
             if (proxyPort) proxyPort.value = result.proxyPort || 2334;
             if (ballToggle) ballToggle.checked = result.showFloatingToggle !== false;
+            renderEndpoint(result.proxyScheme, result.proxyHost, result.proxyPort);
+            updateBypassCount();
         }
     );
 
@@ -279,12 +304,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    if (bypassArea) {
+        bypassArea.addEventListener('input', updateBypassCount);
+    }
+
+    if (btnTest) {
+        btnTest.addEventListener('click', () => {
+            updateProxyModeStatus();
+        });
+    }
+
     if (btnSave) {
         btnSave.onclick = () => {
             const newList = (bypassArea ? bypassArea.value : '')
                 .split('\n')
                 .map(s => s.trim())
-                .filter(s => s.length > 0);
+                .filter(s => s.length > 0 && !s.startsWith('#'));
+            const dedupedList = [...new Set(newList)];
 
             const scheme = proxyScheme ? proxyScheme.value : 'http';
             const host = proxyHost ? proxyHost.value.trim() : '';
@@ -307,7 +343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             chrome.storage.local.set({
-                customBypassList: newList,
+                customBypassList: dedupedList,
                 proxyScheme: scheme,
                 proxyHost: host,
                 proxyPort: port
@@ -316,6 +352,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     showToast(I18N.t('error_save', chrome.runtime.lastError.message), true);
                     return;
                 }
+                renderEndpoint(scheme, host, port);
+                updateBypassCount();
                 updateProxyModeStatus();
                 showToast(I18N.t('success_saved'));
             });

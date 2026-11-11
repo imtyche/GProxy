@@ -398,6 +398,53 @@
             color: var(--hud-muted);
         }
 
+        .status-sub {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .status-endpoint {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--hud-muted);
+            letter-spacing: 0.5px;
+            flex: 1;
+            min-width: 0;
+            word-break: break-all;
+        }
+        .btn-test {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 6px 14px;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid var(--hud-border);
+            color: var(--hud-accent);
+            cursor: pointer;
+            transition: all 0.2s;
+            clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+        }
+        .btn-test:hover {
+            background: rgba(0, 240, 255, 0.2);
+            box-shadow: var(--hud-glow);
+            color: #fff;
+        }
+        .bypass-meta {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+        .bypass-count {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: var(--hud-muted);
+        }
+
         /* Buttons */
         .controls {
             display: flex;
@@ -621,6 +668,10 @@
                     <span class="status-text-small" id="status-text">检测中...</span>
                     <span class="status-mode" id="proxy-mode-text">--</span>
                 </div>
+                <div class="status-sub">
+                    <span class="status-endpoint" id="proxy-endpoint-text">--</span>
+                    <button id="btn-test" class="btn-test" data-i18n="btn_test">测试连接</button>
+                </div>
             </div>
 
             <!-- Bypass List -->
@@ -633,6 +684,9 @@
                     以下域名和 IP 将直接连接，不经过代理服务器。支持通配符，例如 <code>*baidu.com</code>
                 </p>
                 <textarea id="bypass-list" rows="4" placeholder="*baidu.com&#10;localhost&#10;127.0.0.1" spellcheck="false"></textarea>
+                <div class="bypass-meta">
+                    <span class="bypass-count" id="bypass-count"></span>
+                </div>
                 <div class="controls">
                     <button id="btn-save" class="btn-primary" data-i18n="btn_save">保存并更新配置</button>
                     <button id="btn-reset" class="btn-secondary" data-i18n="btn_reset">恢复默认设置</button>

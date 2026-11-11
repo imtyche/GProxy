@@ -165,16 +165,27 @@ function loadConfigAndInit() {
     return configLoadPromise;
 }
 
+/** Human-readable proxy endpoint, e.g. socks5://127.0.0.1:2334 */
+function getEndpointString() {
+    return `${cachedScheme}://${cachedHost}:${cachedPort}`;
+}
+
 /** Persist + broadcast proxy state, and refresh the toolbar badge */
 function broadcastProxyState(state) {
+    const endpoint = getEndpointString();
     chrome.tabs.query({}, (tabs) => {
         for (const tab of tabs) {
             if (!tab.id) continue;
-            chrome.tabs.sendMessage(tab.id, { action: 'updateProxyState', state }).catch(() => {});
+            chrome.tabs.sendMessage(tab.id, { action: 'updateProxyState', state, endpoint }).catch(() => {});
         }
     });
     chrome.action.setBadgeText({ text: state ? 'ON' : '' });
     chrome.action.setBadgeBackgroundColor({ color: state ? '#00c8e0' : '#5a6a7a' });
+    chrome.action.setTitle({
+        title: state
+            ? `GProxy ON — ${endpoint} (Ctrl+Shift+Y)`
+            : 'GProxy OFF — Ctrl+Shift+Y'
+    });
 }
 
 chrome.storage.onChanged.addListener(async (changes, area) => {
@@ -384,6 +395,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             scheme: DEFAULT_SCHEME,
             host: DEFAULT_HOST,
             port: DEFAULT_PORT
+        });
+        return true;
+    }
+
+    if (request.action === 'getStatus') {
+        loadConfigAndInit().then(async () => {
+            const state = await getProxyState();
+            sendResponse({
+                state,
+                scheme: cachedScheme,
+                host: cachedHost,
+                port: cachedPort
+            });
         });
         return true;
     }

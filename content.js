@@ -346,6 +346,8 @@ style.textContent = `
 `;
 (document.head || document.documentElement).appendChild(style);
 
+let currentEndpoint = '';
+
 // ==================== Create the Cyber Toggle ====================
 function createCyberToggle() {
     if (document.getElementById('gproxy-toggle')) return null;
@@ -382,6 +384,18 @@ function createCyberToggle() {
         } catch (error) {
             console.error('[GProxy] toggle error:', error);
         }
+    });
+
+    // Right-click → instantly add the current domain to the bypass list
+    toggle.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        const host = window.location.hostname;
+        if (!host) return;
+        addToWhitelist(host, (ok) => {
+            showToast(ok
+                ? I18N.t('whitelist_added', host)
+                : I18N.t('whitelist_add_error', host));
+        });
     });
 
     // ---------- Draggable + sidebar slide-in/out ----------
@@ -492,16 +506,17 @@ function createCyberToggle() {
 
     // 鼠标是否靠近按钮当前所在边缘（用于自动弹出）
     function isMouseNearToggle(e) {
-        const rect = toggle.getBoundingClientRect();
         const vw = window.innerWidth;
+        // Cheap early-out before any layout read: must be near the current edge
+        if (side === 'right') {
+            if (e.clientX <= vw - SHOW_ZONE) return false;
+        } else {
+            if (e.clientX >= SHOW_ZONE) return false;
+        }
+        const rect = toggle.getBoundingClientRect();
         const inY = e.clientY > rect.top - SHOW_ZONE && e.clientY < rect.bottom + SHOW_ZONE;
         if (!inY) return false;
-
-        if (side === 'right') {
-            return e.clientX > vw - SHOW_ZONE;
-        } else {
-            return e.clientX < SHOW_ZONE;
-        }
+        return side === 'right' ? e.clientX > vw - SHOW_ZONE : e.clientX < SHOW_ZONE;
     }
 
     toggle.addEventListener('mousedown', (e) => {
@@ -526,6 +541,7 @@ function createCyberToggle() {
     });
 
     document.addEventListener('mousemove', (e) => {
+        if (toggle.classList.contains('gproxy-disabled')) return;
         if (isDragging) {
             if (Math.abs(e.clientX - startX) > 4 || Math.abs(e.clientY - startY) > 4) {
                 toggle.dataset.wasDragging = '1';
@@ -651,7 +667,7 @@ function createCyberToggle() {
 }
 
 // ==================== Update Functions ====================
-async function updateCyberState(forceState) {
+async function updateCyberState(forceState, endpoint) {
     const toggle = document.getElementById('gproxy-toggle');
     if (!toggle) return;
 
@@ -659,12 +675,16 @@ async function updateCyberState(forceState) {
 
     if (forceState !== undefined) {
         isProxyOn = !!forceState;
+        if (endpoint) currentEndpoint = endpoint;
     } else {
         try {
-            const response = await chrome.runtime.sendMessage({ action: 'getProxyState' });
-            isProxyOn = !!response;
+            const response = await chrome.runtime.sendMessage({ action: 'getStatus' });
+            if (response) {
+                isProxyOn = !!response.state;
+                currentEndpoint = `${response.scheme}://${response.host}:${response.port}`;
+            }
         } catch (error) {
-            console.error('[GProxy] getProxyState error:', error);
+            console.error('[GProxy] getStatus error:', error);
             isProxyOn = false;
         }
     }
@@ -688,8 +708,8 @@ function updateCyberLabel() {
     const label = document.getElementById('gproxy-cyber-label');
     const text = isOn ? I18N.t('proxy_on') : I18N.t('proxy_off');
 
-    toggle.title = text;
-    toggle.setAttribute('aria-label', text);
+    toggle.title = currentEndpoint ? `${text} — ${currentEndpoint}` : text;
+    toggle.setAttribute('aria-label', toggle.title);
     if (label) label.textContent = text;
 }
 
@@ -701,6 +721,32 @@ function escapeHtml(str) {
         '"': '&quot;',
         "'": '&#39;'
     }[c]));
+}
+
+// Lightweight HUD toast (inline styles avoid touching the big CSS block)
+let toastEl = null;
+function showToast(msg) {
+    if (!toastEl) {
+        toastEl = document.createElement('div');
+        toastEl.className = 'gproxy-toast';
+        toastEl.style.cssText =
+            'position:fixed!important;left:50%!important;bottom:28px!important;' +
+            'transform:translateX(-50%)!important;background:#0a1220!important;' +
+            'border:1px solid #00f0ff!important;color:#00f0ff!important;' +
+            'padding:10px 20px!important;font-family:"Segoe UI","PingFang SC",system-ui,sans-serif!important;' +
+            'font-size:13px!important;letter-spacing:1px!important;z-index:2147483647!important;' +
+            'box-shadow:0 0 16px rgba(0,240,255,0.35)!important;border-radius:2px!important;' +
+            'opacity:0!important;visibility:hidden!important;transition:opacity .3s,visibility .3s!important;';
+        (document.body || document.documentElement).appendChild(toastEl);
+    }
+    toastEl.textContent = msg;
+    toastEl.style.opacity = '1';
+    toastEl.style.visibility = 'visible';
+    clearTimeout(toastEl._timer);
+    toastEl._timer = setTimeout(() => {
+        toastEl.style.opacity = '0';
+        toastEl.style.visibility = 'hidden';
+    }, 2200);
 }
 
 function showWhitelistPrompt() {
@@ -744,7 +790,11 @@ function showWhitelistPrompt() {
     };
 
     prompt.querySelector('.gproxy-btn-yes').addEventListener('click', () => {
-        addToWhitelist(hostname);
+        addToWhitelist(hostname, (ok) => {
+            showToast(ok
+                ? I18N.t('whitelist_added', hostname)
+                : I18N.t('whitelist_add_error', hostname));
+        });
         close();
     });
     prompt.querySelector('.gproxy-btn-no').addEventListener('click', close);
@@ -754,7 +804,7 @@ function showWhitelistPrompt() {
     });
 }
 
-function addToWhitelist(hostname) {
+function addToWhitelist(hostname, onDone) {
     chrome.storage.local.get(['customBypassList'], (result) => {
         let bypassList = Array.isArray(result.customBypassList) ? result.customBypassList.slice() : [];
         if (!bypassList.includes(hostname)) {
@@ -762,11 +812,15 @@ function addToWhitelist(hostname) {
             chrome.storage.local.set({ customBypassList: bypassList }, () => {
                 if (chrome.runtime.lastError) {
                     console.error('[GProxy] whitelist add error:', chrome.runtime.lastError);
+                    if (onDone) onDone(false);
                 } else {
                     console.log('[GProxy] Added to whitelist:', hostname);
                     // storage.onChanged in background will re-apply proxy
+                    if (onDone) onDone(true);
                 }
             });
+        } else if (onDone) {
+            onDone(true);
         }
     });
 }
@@ -775,7 +829,15 @@ function addToWhitelist(hostname) {
 function applyToggleVisibility(enabled) {
     const toggle = document.getElementById('gproxy-toggle');
     if (!toggle) return;
-    toggle.classList.toggle('gproxy-disabled', enabled === false);
+    if (enabled === false) {
+        toggle.classList.add('gproxy-disabled');
+        // Inline `display:flex!important` wins over the stylesheet's
+        // `.gproxy-disabled { display:none }`, so force it on the element itself.
+        toggle.style.setProperty('display', 'none', 'important');
+    } else {
+        toggle.classList.remove('gproxy-disabled');
+        toggle.style.setProperty('display', 'flex', 'important');
+    }
 }
 
 function initToggle() {
@@ -811,7 +873,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
     if (request.action === 'updateProxyState') {
-        updateCyberState(request.state);
+        updateCyberState(request.state, request.endpoint);
         sendResponse({ status: 'ok' });
         return true;
     }
